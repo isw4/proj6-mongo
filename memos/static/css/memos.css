@@ -5,11 +5,34 @@
 
 /* Nothing yet */
 
-.lyrics {
-    margin-left: 3em;
-    font-style: italic;
+.jumbotron {
+	margin: 0;
 }
 
-.attribution  {
-    font-size: smaller;
+h1 {
+	text-align: center;
+}
+
+.navbar form {
+	margin: 0;
+}
+
+.memo:nth-child(2n-1) {
+	background-color: grey;
+}
+
+.memo:nth-child(2n) {
+	background-color: pink;
+}
+
+.memo p {
+	margin: 5px 15px;
+}
+
+.memo div {
+	padding: 0;
+}
+
+.memo .btn {
+	float: right;
 }

@@ -1,62 +1,98 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<html> <head>
-<title>Memos</title>
-
-  <!-- 'viewport' is used by bootstrap to respond to device size -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<html> 
+<head>
+  <title>Memos</title>
 
   <!-- Javascript:  JQuery from a content distribution network (CDN) -->
   <script
-     src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js">
-  </script>
+    src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+    crossorigin="anonymous"></script>
 
-  <!-- Bootstrap includes javascript and css  (must follow jquery) -->
-  <link rel="stylesheet"
-   href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-   <script
-    src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js">
-</script>
+  <!-- BOOTSTRAP -->
+  <link rel="stylesheet" 
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" 
+    integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" 
+    crossorigin="anonymous">
+  <script 
+    src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" 
+    integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" 
+    crossorigin="anonymous"></script>
+  <script 
+    src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" 
+    integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" 
+    crossorigin="anonymous"></script>
 
-   <!-- Our own style sheet -->
-   <link rel="stylesheet" href="/static/css/memos.css" />
-
+  <!-- Our own style sheet -->
+  <link rel="stylesheet" 
+    href="/static/css/memos.css" />
 
 </head>
+
 <body>
-<div class="container">
 
-<!-- Flashed messages before content -->
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
-
-<h1>Memos</h1>
-
-{% if g.memos %}
-    {% for memo in g.memos %}
-  <div class="memo">
-  <div class="row">
-  <div class="col-md-2">
-    {{ memo.date | humanize }}
+  <div class="jumbotron">
+    <h1>Memos</h1>
   </div>
-  <div class="col-md-10">
-    {{ memo.text }}
-  </div>
-  </div> <!-- row -->
-  </div> <!-- memo -->
-  {% endfor %}
-{% else %}
-  <p>No memos for you. </p>  
-{% endif %}
 
- 
+  <nav class="navbar navbar-dark bg-dark">
+    <form action="/create" method="get"><button type="submit" class="btn btn-success">Create New Memo</button></form>
+  </nav>
 
-</div> <!-- container -->
+  <div class="container">
+
+    <!-- Flashed messages before content -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% if g.memos %}
+        {% for memo in g.memos %}
+    <div class="memo row" id="{{ memo.id }}">
+      <div class="date col-md-2">
+        <p>{{ memo.date | humanize }}</p>
+      </div>
+      <div class="text col-md-10">
+        <p>{{ memo.text }}</p>
+        
+        <button type="button" class="btn btn-danger delete-memo">Delete</button>
+      </div>
+    </div> <!-- row -->
+      {% endfor %}
+    {% else %}
+    <div class="memo row">
+      <p>No memos for you.</p> 
+    </div>
+    {% endif %}
+
+  </div> <!-- container -->
+
+  <script type="text/javascript">
+    $(".delete-memo").click(function(){
+      console.log("delete button pressed");
+      var parent_row = $(this).parents(".memo");
+      var _id = parent_row.attr("id");
+      console.log(typeof(_id));
+
+      $.post("/delete", { id: _id }, 
+        function(data){
+          console.log("ajax call returned");
+          if (data.result.exception) {
+            console.log(data.result.exception);
+          }
+          else {
+            console.log("entry should be deleted");
+            parent_row.fadeOut();
+          }
+        } //end ajax callback
+      , "json") //end ajax
+    }) //end onclick
+  </script>
 </body>
 </html>

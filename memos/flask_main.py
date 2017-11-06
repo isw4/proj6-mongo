@@ -29,6 +29,7 @@ from dateutil import tz  # For interpreting local times
 
 # Mongo database
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 import config
 CONFIG = config.configuration()
@@ -59,7 +60,7 @@ app.secret_key = CONFIG.SECRET_KEY
 try: 
     dbclient = MongoClient(MONGO_CLIENT_URL)
     db = getattr(dbclient, CONFIG.DB)
-    collection = db.dated
+    collection = getattr(db, CONFIG.DB_COLLECTION)
 
 except:
     print("Failure opening database.  Is Mongo running? Correct password?")
@@ -81,11 +82,41 @@ def index():
   return flask.render_template('index.html')
 
 
-# We don't have an interface for creating memos yet
-# @app.route("/create")
-# def create():
-#     app.logger.debug("Create")
-#     return flask.render_template('create.html')
+@app.route("/create", methods=["GET"])
+def create_page():
+    app.logger.debug("Create memo page sent")
+    return flask.render_template('create.html')
+
+
+@app.route("/create", methods=["POST"])
+def create_submit():
+    app.logger.debug("Create memo request received by server")
+    req_date = request.form['date-input']
+    req_text = request.form['text-input']
+    if req_date == None or req_text == None:
+      app.logger.debug('Request inputs not complete')
+      Flask.flash('Request inputs not complete. Memo not created.')
+    else:
+      app.logger.debug('Inserting memo into db')
+      create_memo(req_date, req_text)
+    return flask.redirect(url_for('index'))
+
+
+@app.route("/delete", methods=["POST"])
+def delete_submit():
+    app.logger.debug("Delete memo request received by server")
+    app.logger.debug("request.form: {}".format(request.form))
+
+    result = {}
+    if request.form.get('id', None, type=str) == None:
+      app.logger.debug("No memo id included")
+      result = {'exception': 'No memo id included'}
+    else:
+      app.logger.debug("Memo id to be deleted is: {}".format(request.form.get('id')))
+      deleted = delete_memo(request.form.get('id'))
+      if not deleted:
+        result = {'exception': 'Error in deleting entry'}
+    return flask.jsonify(result=result)
 
 
 @app.errorhandler(404)
@@ -136,15 +167,29 @@ def get_memos():
     """
     records = [ ]
     for record in collection.find( { "type": "dated_memo" } ):
-        record['date'] = arrow.get(record['date']).isoformat()
-        del record['_id']
+        record['id'] = str(record['_id'])   # converts the id object into a string
+        del record['_id']                   # removes the id object so it can be jsonified
         records.append(record)
     return records 
+
+
+def create_memo(date, text):
+    """ Inserts a memo into the database """
+    record = {"type": "dated_memo"}
+    record['date'] = date
+    record['text'] = text
+    collection.insert(record)
+
+
+def delete_memo(_id):
+    """ Deletes a memo from the database """
+    result = collection.delete_one({'_id': ObjectId(_id)})
+    if result.deleted_count == 1:
+          return True
+    else: return False
 
 
 if __name__ == "__main__":
     app.debug=CONFIG.DEBUG
     app.logger.setLevel(logging.DEBUG)
     app.run(port=CONFIG.PORT,host="0.0.0.0")
-
-    
