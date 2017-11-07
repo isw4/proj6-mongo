@@ -26,11 +26,15 @@ def humanize_date(date):
 	try:
 		"""
 		'date' has no timezone attached. arrow assumes that it is in UTC,
-		but this is fine since we are only interested in the date, and
-		we assume that the client is in the same TZ as the server
+		but we want to assume that the client is in the same TZ as the
+		server. The next few lines slap the input date onto the local TZ
 		"""
-		then = arrow.get(date).to('local')
+		parts = date.split('T')[0].split('-')
+		then = arrow.utcnow().to('local')
+		then = then.replace(year=int(parts[0]), month=int(parts[1]), day=int(parts[2]))
+		# The server time + TZ
 		now = arrow.utcnow().to('local')
+		
 		if then.date() == now.date():
 			human = "Today"
 		else: 
