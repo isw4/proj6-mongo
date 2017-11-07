@@ -73,21 +73,22 @@
 
   </div> <!-- container -->
 
+  <!-- OUR JAVASCRIPT(handles deleting memos with ajax) -->
   <script type="text/javascript">
     $(".delete-memo").click(function(){
       console.log("delete button pressed");
+
       var parent_row = $(this).parents(".memo");
       var _id = parent_row.attr("id");
-      console.log(typeof(_id));
-
+      
       $.post("/delete", { id: _id }, 
         function(data){
-          console.log("ajax call returned");
+          console.log("AJAX call returned");
           if (data.result.exception) {
             console.log(data.result.exception);
           }
           else {
-            console.log("entry should be deleted");
+            console.log("Memo deleted");
             parent_row.fadeOut();
           }
         } //end ajax callback

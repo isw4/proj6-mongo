@@ -28,11 +28,14 @@ import arrow
 from dateutil import tz  # For interpreting local times
 
 # Mongo database
+import pymongo
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 import config
 CONFIG = config.configuration()
+
+import memo_func
 
 
 MONGO_CLIENT_URL = "mongodb://{}:{}@{}:{}/{}".format(
@@ -61,11 +64,11 @@ try:
     dbclient = MongoClient(MONGO_CLIENT_URL)
     db = getattr(dbclient, CONFIG.DB)
     collection = getattr(db, CONFIG.DB_COLLECTION)
+    db_nav = memo_func.MemoNav(collection)
 
 except:
     print("Failure opening database.  Is Mongo running? Correct password?")
     sys.exit(1)
-
 
 
 ###
@@ -75,35 +78,44 @@ except:
 @app.route("/")
 @app.route("/index")
 def index():
+  """ Index page, where all existing memos are displayed """
   app.logger.debug("Main page entry")
-  g.memos = get_memos()
+  
+  g.memos = db_nav.get_all()
   for memo in g.memos: 
       app.logger.debug("Memo: " + str(memo))
+  
   return flask.render_template('index.html')
 
 
 @app.route("/create", methods=["GET"])
 def create_page():
+    """ Renders the page for user to input data and create a memo """
     app.logger.debug("Create memo page sent")
+    
     return flask.render_template('create.html')
 
 
 @app.route("/create", methods=["POST"])
 def create_submit():
+    """ Handles the HTTP post request from the client to create a memo """
     app.logger.debug("Create memo request received by server")
     req_date = request.form['date-input']
     req_text = request.form['text-input']
+
     if req_date == None or req_text == None:
-      app.logger.debug('Request inputs not complete')
-      Flask.flash('Request inputs not complete. Memo not created.')
+      app.logger.debug('Incomplete input')
+      Flask.flash('Incomplete input. Memo not created.')
     else:
       app.logger.debug('Inserting memo into db')
-      create_memo(req_date, req_text)
+      db_nav.insert_one(req_date, req_text)
+    
     return flask.redirect(url_for('index'))
 
 
 @app.route("/delete", methods=["POST"])
 def delete_submit():
+    """ Handles the AJAX request from the client to delete a memo """
     app.logger.debug("Delete memo request received by server")
     app.logger.debug("request.form: {}".format(request.form))
 
@@ -113,9 +125,10 @@ def delete_submit():
       result = {'exception': 'No memo id included'}
     else:
       app.logger.debug("Memo id to be deleted is: {}".format(request.form.get('id')))
-      deleted = delete_memo(request.form.get('id'))
+      deleted = db_nav.delete_one(request.form.get('id'))
       if not deleted:
         result = {'exception': 'Error in deleting entry'}
+    
     return flask.jsonify(result=result)
 
 
@@ -141,52 +154,7 @@ def humanize_arrow_date( date ):
     Arrow will try to humanize down to the minute, so we
     need to catch 'today' as a special case. 
     """
-    try:
-        then = arrow.get(date).to('local')
-        now = arrow.utcnow().to('local')
-        if then.date() == now.date():
-            human = "Today"
-        else: 
-            human = then.humanize(now)
-            if human == "in a day":
-                human = "Tomorrow"
-    except: 
-        human = date
-    return human
-
-
-#############
-#
-# Functions available to the page code above
-#
-##############
-def get_memos():
-    """
-    Returns all memos in the database, in a form that
-    can be inserted directly in the 'session' object.
-    """
-    records = [ ]
-    for record in collection.find( { "type": "dated_memo" } ):
-        record['id'] = str(record['_id'])   # converts the id object into a string
-        del record['_id']                   # removes the id object so it can be jsonified
-        records.append(record)
-    return records 
-
-
-def create_memo(date, text):
-    """ Inserts a memo into the database """
-    record = {"type": "dated_memo"}
-    record['date'] = date
-    record['text'] = text
-    collection.insert(record)
-
-
-def delete_memo(_id):
-    """ Deletes a memo from the database """
-    result = collection.delete_one({'_id': ObjectId(_id)})
-    if result.deleted_count == 1:
-          return True
-    else: return False
+    return memo_func.humanize_date(date)
 
 
 if __name__ == "__main__":

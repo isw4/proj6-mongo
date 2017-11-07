@@ -37,42 +37,64 @@ except Exception as err:
 #
 # Insertions
 # 
-print("Deleting old entries")
+print("\nDeleting old entries")
 collection.delete_many({})
+
+print("\nCreating index")
+collection.create_index("score")
 
 lorem = "Spicy jalapeno bacon ipsum dolor amet tri-tip qui pork loin, magna meatloaf pastrami in. Velit labore ham hock, occaecat sirloin meatball culpa beef ribs cillum kielbasa id shoulder rump adipisicing. Picanha dolor exercitation, flank swine adipisicing beef ribs pork chop filet mignon eiusmod veniam. Frankfurter strip steak eu, tongue bacon jerky elit duis id leberkas eiusmod kielbasa tail adipisicing."
 
+print("\nInserting memos")
+timenow = arrow.utcnow();
 mem = { 
         "type": "dated_memo",
-        "date":  arrow.utcnow().isoformat(),
-        "text": "This is the first memo. "+lorem
+        "date":  timenow.isoformat(),
+        "score": timenow.isoformat().split('T')[0].replace('-', ''),
+        "text": "This is the first inserted memo. "+lorem
       }
 
-print("Inserting 1")
+print("Inserting 1st memo")
 collection.insert(mem)
 print("Inserted")
 
 first = collection.find_one()
 first_id = str(first['_id'])
-print("The id as a string of the first item is {}".format(first_id))
+print("The id as a string of the first memo is {}".format(first_id))
 
+timenow = arrow.utcnow();
 mem = { 
         "type": "dated_memo",
-        "date":  arrow.utcnow().isoformat(),
-        "text": "This is the second memo. "+lorem
+        "date":  timenow.isoformat(),
+        "score": timenow.isoformat().split('T')[0].replace('-', ''),
+        "text": "This is the second inserted memo. "+lorem
       }
 
-print("Inserting 2")
+print("Inserting 2nd memo")
 collection.insert(mem)
 print("Inserted")
 
+timenow = arrow.utcnow();
 mem = { 
         "type": "dated_memo",
-        "date":  arrow.utcnow().isoformat(),
-        "text": "This is the third memo. "+lorem
+        "date":  timenow.isoformat(),
+        "score": timenow.isoformat().split('T')[0].replace('-', ''),
+        "text": "This is the third inserted memo. "+lorem
       }
 
-print("Inserting 3")
+print("Inserting 3rd memo")
+collection.insert(mem)
+print("Inserted")
+
+timenow = arrow.utcnow().shift(days=-2);
+mem = { 
+        "type": "dated_memo",
+        "date":  timenow.isoformat(),
+        "score": timenow.isoformat().split('T')[0].replace('-', ''),
+        "text": "This is the fourth inserted but temporally earliest memo. "+lorem
+      }
+
+print("Inserting 4th memo")
 collection.insert(mem)
 print("Inserted")
 
@@ -82,7 +104,7 @@ print("Inserted")
 #
 found = collection.find_one({'_id': ObjectId(first_id)})
 found_text = found['text']
-print("The text of the entry found is: {}".format(found_text))
+print("\nThe text of the first inserted memo is: {}".format(found_text))
 
 
 #
@@ -90,3 +112,11 @@ print("The text of the entry found is: {}".format(found_text))
 #
 # res = collection.delete_one({'_id': ObjectId(first_id)})
 # print("Deleted {} number of entries".format(res.deleted_count))
+
+
+#
+# Sorting by score
+#
+print("\nListing memos by score")
+for memo in collection.find().sort('score', pymongo.ASCENDING):
+    print(memo['text'])
